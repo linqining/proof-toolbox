@@ -14,8 +14,8 @@ pub struct Proof<C>
 where
     C: ProjectiveCurve,
 {
-    pub(crate) random_commit: C,
-    pub(crate) opening: C::ScalarField,
+    pub random_commit: C,
+    pub opening: C::ScalarField,
 }
 
 impl<C: ProjectiveCurve> Proof<C> {
