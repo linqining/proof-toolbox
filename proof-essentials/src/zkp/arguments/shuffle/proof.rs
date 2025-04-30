@@ -13,7 +13,7 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError
 use ark_std::io::{Read, Write};
 use digest::Digest;
 
-#[derive(CanonicalDeserialize, CanonicalSerialize)]
+#[derive(CanonicalDeserialize, CanonicalSerialize,Debug)]
 pub struct Proof<Scalar, Enc, Comm>
 where
     Scalar: Field,
