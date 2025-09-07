@@ -3,8 +3,8 @@ use crate::error::CryptoError;
 use super::proof::Proof;
 use super::{Parameters, Statement, Witness};
 
-use ark_ec::{AffineCurve, ProjectiveCurve};
-use ark_ff::{to_bytes, PrimeField};
+use ark_ec::{CurveGroup};
+use ark_ff::{PrimeField};
 use ark_marlin::rng::FiatShamirRng;
 use ark_std::{rand::Rng, UniformRand};
 use digest::Digest;
@@ -13,14 +13,14 @@ use std::marker::PhantomData;
 
 pub struct Prover<C>
 where
-    C: ProjectiveCurve,
+    C: CurveGroup,
 {
     phantom: PhantomData<C>,
 }
 
 impl<C> Prover<C>
 where
-    C: ProjectiveCurve,
+    C: CurveGroup,
 {
     pub fn create_proof<R: Rng, D: Digest>(
         rng: &mut R,

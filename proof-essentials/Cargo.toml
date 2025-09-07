@@ -5,11 +5,12 @@ edition = "2021"
 
 [dependencies]
 ark-crypto-primitives = "0.3.0"
-ark-ec = "0.3.0"
-ark-ff = "0.3.0"
+bytes = "1.0"
+ark-ec = "0.5.0"
+ark-ff = "0.5.0"
 ark-marlin = "0.3.0"
-ark-serialize = "0.3.0"
-ark-std = { version = "0.3.0", features = ["std"] }
+ark-serialize = "0.5.0"
+ark-std = { version = "0.5.0", features = ["std"] }
 merlin = "3.0.0"
 rand = "0.8.4"
 starknet-curve = { path = "../starknet-curve" }

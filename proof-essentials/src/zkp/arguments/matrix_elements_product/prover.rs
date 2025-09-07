@@ -8,7 +8,7 @@ use crate::zkp::{
     ArgumentOfKnowledge,
 };
 
-use ark_ff::{to_bytes, Field};
+use ark_ff::{ Field};
 use ark_marlin::rng::FiatShamirRng;
 use ark_std::rand::Rng;
 use digest::Digest;
@@ -45,7 +45,7 @@ where
         rng: &mut R,
         fs_rng: &mut FiatShamirRng<D>,
     ) -> Result<Proof<Scalar, Comm>, CryptoError> {
-        fs_rng.absorb(&to_bytes![b"matrix_elements_product"]?);
+        fs_rng.absorb(b"matrix_elements_product");
 
         let s = Scalar::rand(rng);
 

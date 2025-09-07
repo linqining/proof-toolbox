@@ -8,9 +8,11 @@ use crate::zkp::arguments::scalar_powers;
 use ark_marlin::rng::FiatShamirRng;
 use digest::Digest;
 
-use ark_ff::{to_bytes, Field, Zero};
+use ark_ff::{ Field, Zero};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::io::{Read, Write};
+use bytes::BytesMut;
+use rand::Error;
 
 #[derive(CanonicalDeserialize, CanonicalSerialize,Debug)]
 pub struct Proof<Scalar, Enc, Comm>
@@ -48,17 +50,42 @@ where
         let n = statement.shuffled_ciphers[0].len();
         let num_of_diagonals = 2 * m - 1;
 
-        fs_rng.absorb(
-            &to_bytes![
-                b"multi-exponentiation",
-                proof_parameters.public_key,
-                proof_parameters.commit_key,
-                statement.commitments_to_exponents,
-                &statement.product,
-                statement.shuffled_ciphers
-            ]
-            .unwrap(),
-        );
+        let mut buffer = BytesMut::with_capacity(1024);
+        buffer.extend_from_slice(b"multi-exponentiation");
+        let mut pkey_bytes = vec![];
+        if let Err(err)=proof_parameters.public_key.serialize_compressed(pkey_bytes){
+            return Err(CryptoError::InvalidProductArgumentStatement)
+        };
+
+        buffer.extend_from_slice(pkey_bytes.as_slice());
+
+        let mut commitkey_bytes = vec![];
+        if let Err(err)=proof_parameters.commit_key.serialize_compressed(commitkey_bytes){
+            return Err(CryptoError::InvalidProductArgumentStatement)
+        };
+        buffer.extend_from_slice(commitkey_bytes.as_slice());
+
+        let mut commitments_bytes = vec![];
+        if let Err(err)= statement.commitments_to_exponents.serialize_compressed(commitments_bytes){
+            return Err(CryptoError::InvalidProductArgumentStatement)
+        };
+        buffer.extend_from_slice(commitments_bytes.as_slice());
+
+
+        let mut product_bytes = vec![];
+        if let Err(err)= statement.product.serialize_compressed(product_bytes){
+            return Err(CryptoError::InvalidProductArgumentStatement)
+        };
+        buffer.extend_from_slice(product_bytes.as_slice());
+
+        let mut shuffle_bytes = vec![];
+        if let Err(err)= statement.shuffled_ciphers.serialize_compressed(shuffle_bytes){
+            return Err(CryptoError::InvalidProductArgumentStatement)
+        };
+        buffer.extend_from_slice(shuffle_bytes.as_slice());
+
+
+        fs_rng.absorb(buffer.iter().as_slice());
 
         fs_rng.absorb(&to_bytes![m as u32, n as u32, num_of_diagonals as u32]?);
 

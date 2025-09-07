@@ -7,7 +7,7 @@ use crate::utils::{rand::sample_vector, vector_arithmetic::dot_product};
 use crate::vector_commitment::HomomorphicCommitmentScheme;
 use crate::zkp::arguments::scalar_powers;
 
-use ark_ff::{to_bytes, Field, Zero};
+use ark_ff::{ Field, Zero};
 use ark_marlin::rng::FiatShamirRng;
 use ark_std::rand::Rng;
 use digest::Digest;

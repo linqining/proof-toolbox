@@ -1,18 +1,18 @@
 use super::super::Plaintext;
 
-use ark_ec::{AffineCurve, ProjectiveCurve};
+use ark_ec::{ CurveGroup};
 use ark_ff::Zero;
 use ark_std::{rand::Rng, UniformRand};
 use std::ops::Mul;
 
-impl<C: ProjectiveCurve> Mul<C::ScalarField> for Plaintext<C> {
+impl<C: CurveGroup> Mul<C::ScalarField> for Plaintext<C> {
     type Output = Self;
     fn mul(self, x: C::ScalarField) -> Self::Output {
         Self(self.0.mul(x).into_affine())
     }
 }
 
-impl<C: ProjectiveCurve> std::ops::Add<Plaintext<C>> for Plaintext<C> {
+impl<C: CurveGroup> std::ops::Add<Plaintext<C>> for Plaintext<C> {
     type Output = Self;
 
     fn add(self, _rhs: Self) -> Self {
@@ -20,13 +20,13 @@ impl<C: ProjectiveCurve> std::ops::Add<Plaintext<C>> for Plaintext<C> {
     }
 }
 
-impl<C: ProjectiveCurve> UniformRand for Plaintext<C> {
+impl<C: CurveGroup> UniformRand for Plaintext<C> {
     fn rand<R: Rng + ?Sized>(rng: &mut R) -> Self {
         Self(C::rand(rng).into_affine())
     }
 }
 
-impl<C: ProjectiveCurve> Zero for Plaintext<C> {
+impl<C: CurveGroup> Zero for Plaintext<C> {
     fn zero() -> Self {
         Self(C::Affine::zero())
     }

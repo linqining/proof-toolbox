@@ -2,8 +2,7 @@ use crate::error::CryptoError;
 
 use super::{Parameters, Statement};
 
-use ark_ec::{AffineCurve, ProjectiveCurve};
-use ark_ff::to_bytes;
+use ark_ec::{ CurveGroup};
 use ark_marlin::rng::FiatShamirRng;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::io::{Read, Write};
@@ -13,14 +12,14 @@ use digest::Digest;
 #[derive(CanonicalDeserialize, CanonicalSerialize,Debug,Clone,Copy)]
 pub struct Proof<C>
 where
-    C: ProjectiveCurve,
+    C: CurveGroup,
 {
     pub a: C,
     pub b: C,
     pub r: C::ScalarField,
 }
 
-impl<C: ProjectiveCurve> Proof<C> {
+impl<C: CurveGroup> Proof<C> {
     pub fn verify<D: Digest>(
         &self,
         parameters: &Parameters<C>,

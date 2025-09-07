@@ -1,10 +1,10 @@
 use super::super::Ciphertext;
-use ark_ec::{AffineCurve, ProjectiveCurve};
+use ark_ec::{ CurveGroup};
 use ark_std::{UniformRand, Zero};
 use rand::Rng;
 use std::ops::Mul;
 
-impl<C: ProjectiveCurve> std::ops::Add<Ciphertext<C>> for Ciphertext<C> {
+impl<C: CurveGroup> std::ops::Add<Ciphertext<C>> for Ciphertext<C> {
     type Output = Self;
 
     fn add(self, _rhs: Self) -> Self {
@@ -12,20 +12,20 @@ impl<C: ProjectiveCurve> std::ops::Add<Ciphertext<C>> for Ciphertext<C> {
     }
 }
 
-impl<C: ProjectiveCurve> Mul<C::ScalarField> for Ciphertext<C> {
+impl<C: CurveGroup> Mul<C::ScalarField> for Ciphertext<C> {
     type Output = Self;
     fn mul(self, x: C::ScalarField) -> Self::Output {
         Self(self.0.mul(x).into_affine(), self.1.mul(x).into_affine())
     }
 }
 
-impl<C: ProjectiveCurve> std::iter::Sum for Ciphertext<C> {
+impl<C: CurveGroup> std::iter::Sum for Ciphertext<C> {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         iter.fold(Self(C::Affine::zero(), C::Affine::zero()), |a, b| a + b)
     }
 }
 
-impl<C: ProjectiveCurve> Zero for Ciphertext<C> {
+impl<C: CurveGroup> Zero for Ciphertext<C> {
     fn zero() -> Self {
         Self(C::Affine::zero(), C::Affine::zero())
     }
@@ -35,7 +35,7 @@ impl<C: ProjectiveCurve> Zero for Ciphertext<C> {
     }
 }
 
-impl<C: ProjectiveCurve> UniformRand for Ciphertext<C> {
+impl<C: CurveGroup> UniformRand for Ciphertext<C> {
     fn rand<R: Rng + ?Sized>(rng: &mut R) -> Self {
         let c0 = C::rand(rng).into_affine();
         let c1 = C::rand(rng).into_affine();

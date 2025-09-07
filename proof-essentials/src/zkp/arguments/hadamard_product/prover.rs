@@ -7,11 +7,12 @@ use crate::vector_commitment::HomomorphicCommitmentScheme;
 use crate::zkp::arguments::{zero_value_bilinear_map, zero_value_bilinear_map::YMapping};
 use crate::zkp::ArgumentOfKnowledge;
 
-use ark_ff::{to_bytes, Field, Zero};
+use ark_ff::{ Field, Zero};
 use ark_marlin::rng::FiatShamirRng;
 use digest::Digest;
 use rand::Rng;
 use std::iter;
+use bytes::{BufMut, BytesMut};
 
 pub struct Prover<'a, Scalar, Comm>
 where
@@ -45,7 +46,7 @@ where
         rng: &mut R,
         fs_rng: &mut FiatShamirRng<D>,
     ) -> Result<Proof<Scalar, Comm>, CryptoError> {
-        fs_rng.absorb(&to_bytes![b"hadamard_product_argument"]?);
+        fs_rng.absorb(b"hadamard_product_argument");
 
         // Compute intermediate products (b values). Final b should be the one from the witness
         let mut acc = vec![Scalar::one(); self.parameters.n];
@@ -83,15 +84,16 @@ where
         s.insert(0, self.witness.randoms_for_a_commit[0]);
         s.push(self.witness.random_for_b_commit);
 
+        let mut buffer = BytesMut::with_capacity(1024);
+        buffer.extend_from_slice(self.parameters.commit_key.clone());
+        buffer.put_u32( self.parameters.m as u32);
+        buffer.put_u32(self.parameters.n as u32);
+
         // Public parameters
-        fs_rng.absorb(&to_bytes![
-            self.parameters.commit_key,
-            self.parameters.m as u32,
-            self.parameters.n as u32
-        ]?);
+        fs_rng.absorb(buffer.iter().as_slice());
 
         // Commited values
-        fs_rng.absorb(&to_bytes![b_commits]?);
+        fs_rng.absorb(b_commits.clone().as_slice());
 
         // Challenges
         let x = Scalar::rand(fs_rng);
