@@ -10,6 +10,7 @@ use ark_marlin::rng::FiatShamirRng;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::io::{Read, Write};
 use digest::Digest;
+use crate::utils::to_bytes::to_bytes;
 
 #[derive(CanonicalDeserialize, CanonicalSerialize,Debug)]
 pub struct Proof<Scalar, Comm>
@@ -53,27 +54,37 @@ where
             )));
         }
 
-        fs_rng.absorb(&to_bytes![b"zero_argument"]?);
+        fs_rng.absorb(b"zero_argument");
 
-        // Public parameters
-        fs_rng.absorb(&to_bytes![
+        let commit_slice:Vec<dyn CanonicalSerialize> = vec![
             proof_parameters.commit_key,
             proof_parameters.m as u32,
             proof_parameters.n as u32
-        ]?);
+        ];
+        if let Some(commit_bytes) = to_bytes(commit_slice){
+            // Public parameters
+            fs_rng.absorb(commit_bytes);
+        }else{
+            return Err(crate::error::CryptoError::InvalidProductArgumentStatement)
+        }
 
-        // Random values
-        fs_rng.absorb(&to_bytes![self.a_0_commit, self.b_m_commit]?);
+        if let Some(random_bytes) = to_bytes(vec![self.a_0_commit, self.b_m_commit]){
+            // Random values
+            fs_rng.absorb(random_bytes);
+        }else{
+            return Err(crate::error::CryptoError::InvalidProductArgumentStatement)
+        }
 
-        // Commitments
-        fs_rng.absorb(
-            &to_bytes![
-                statement.commitment_to_a,
-                statement.commitment_to_b,
-                self.vector_of_committed_diagonals
-            ]
-            .unwrap(),
-        );
+        let dynamic_commit_slice:Vec<dyn CanonicalSerialize> = vec![     statement.commitment_to_a,
+                                             statement.commitment_to_b,
+                                             self.vector_of_committed_diagonals];
+
+        if let Some(random_bytes) = to_bytes(dynamic_commit_slice){
+            // Commitments
+            fs_rng.absorb(random_bytes);
+        }else{
+            return Err(crate::error::CryptoError::InvalidProductArgumentStatement)
+        }
 
         let x = Scalar::rand(fs_rng);
 

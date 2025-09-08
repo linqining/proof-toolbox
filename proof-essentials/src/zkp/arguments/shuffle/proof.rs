@@ -2,7 +2,7 @@ use super::{Parameters, Statement};
 
 use crate::error::CryptoError;
 use crate::homomorphic_encryption::HomomorphicEncryptionScheme;
-use crate::utils::vector_arithmetic::dot_product;
+use crate::utils::{vector_arithmetic::dot_product,to_bytes::to_bytes};
 use crate::vector_commitment::HomomorphicCommitmentScheme;
 use crate::zkp::arguments::scalar_powers;
 use crate::zkp::arguments::{matrix_elements_product as product_argument, multi_exponentiation};
@@ -12,6 +12,7 @@ use ark_marlin::rng::FiatShamirRng;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::io::{Read, Write};
 use digest::Digest;
+
 
 #[derive(CanonicalDeserialize, CanonicalSerialize)]
 pub struct Proof<Scalar, Enc, Comm>
@@ -40,33 +41,50 @@ where
     ) -> Result<(), CryptoError> {
         statement.is_valid()?;
 
-        fs_rng.absorb(&to_bytes![b"shuffle_argument"]?);
+        fs_rng.absorb(b"shuffle_argument");
 
-        // Public data
-        fs_rng.absorb(&to_bytes![
+        if let Some(public_bytes) = to_bytes(vec![
             proof_parameters.public_key,
             proof_parameters.commit_key
-        ]?);
+        ]){
+            // Public data
+            fs_rng.absorb(public_bytes);
+        }else{
+            return Err(crate::error::CryptoError::InvalidProductArgumentStatement)
+        }
 
-        // statement
-        fs_rng.absorb(
-            &to_bytes![
-                statement.input_ciphers,
-                statement.shuffled_ciphers,
-                statement.m as u32,
-                statement.n as u32
-            ]
-            .unwrap(),
-        );
+        let mut commit_slice:Vec<dyn CanonicalSerialize> = Vec::new();
+        commit_slice.push(statement.input_ciphers);
+        commit_slice.push(statement.shuffled_ciphers);
+        commit_slice.push(statement.m as u32);
+        commit_slice.push(statement.n as u32);
 
-        // round 1
-        fs_rng.absorb(&to_bytes![self.a_commits]?);
+        if let Some(statement_bytes) = to_bytes(commit_slice){
+            // statement
+            fs_rng.absorb(statement_bytes);
+        }else{
+            return Err(crate::error::CryptoError::InvalidProductArgumentStatement)
+        }
+
+        if let Some(acommmit_bytes) = to_bytes(vec![self.a_commits]){
+            // round 1
+            fs_rng.absorb(acommmit_bytes);
+        }else{
+            return Err(crate::error::CryptoError::InvalidProductArgumentStatement)
+        }
+
         let x = Scalar::rand(fs_rng);
 
         let challenge_powers = scalar_powers(x, statement.m * statement.n)[1..].to_vec();
 
-        // round 2
-        fs_rng.absorb(&to_bytes![self.b_commits]?);
+
+        if let Some(bcommmit_bytes) = to_bytes(vec![self.b_commits]){
+            // round 2
+            fs_rng.absorb(bcommmit_bytes);
+        }else{
+            return Err(crate::error::CryptoError::InvalidProductArgumentStatement)
+        }
+
         let y = Scalar::rand(fs_rng);
         let z = Scalar::rand(fs_rng);
 

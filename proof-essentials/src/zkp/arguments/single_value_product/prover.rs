@@ -10,6 +10,7 @@ use ark_marlin::rng::FiatShamirRng;
 use ark_std::rand::Rng;
 use digest::Digest;
 use std::iter;
+use crate::utils::to_bytes::to_bytes;
 
 pub struct Prover<'a, Scalar, Comm>
 where
@@ -43,7 +44,7 @@ where
         rng: &mut R,
         fs_rng: &mut FiatShamirRng<D>,
     ) -> Result<Proof<Scalar, Comm>, CryptoError> {
-        fs_rng.absorb(&to_bytes![b"single_value_product_argument"]?);
+        fs_rng.absorb(b"single_value_product_argument");
 
         // generate vector b
         let b: Vec<Scalar> = iter::once(self.witness.a[0])
@@ -102,14 +103,23 @@ where
 
         let diff_commit = Comm::commit(&self.parameters.commit_key, &diffs, s_x)?;
 
-        //public information
-        fs_rng.absorb(&to_bytes![
-            self.parameters.commit_key,
-            self.statement.a_commit
-        ]?);
 
-        //commits
-        fs_rng.absorb(&to_bytes![d_commit, delta_commit, diff_commit]?);
+        if let Some(public_info_bytes) = to_bytes(vec![self.parameters.commit_key,
+                                                       self.statement.a_commit]){
+            //public information
+            fs_rng.absorb(public_info_bytes);
+        }else{
+            return Err(crate::error::CryptoError::InvalidProductArgumentStatement)
+        }
+
+
+        if let Some(commit_bytes) = to_bytes(vec![d_commit, delta_commit, diff_commit]){
+            //commits
+            fs_rng.absorb(commit_bytes);
+        }else{
+            return Err(crate::error::CryptoError::InvalidProductArgumentStatement)
+        }
+
 
         let x = Scalar::rand(fs_rng);
 

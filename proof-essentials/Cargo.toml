@@ -17,6 +17,7 @@ starknet-curve = { path = "../starknet-curve" }
 thiserror = "1.0.30"
 blake2 = { version = "0.9", default-features = false }
 digest = { version = "0.9" }
+bytemuck = "1.23.2"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.2", features = ["js"] }

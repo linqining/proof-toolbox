@@ -9,6 +9,8 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError
 use ark_std::io::{Read, Write};
 use digest::Digest;
 
+use crate::utils::{to_bytes::to_bytes};
+
 #[derive(CanonicalDeserialize, CanonicalSerialize,Debug)]
 pub struct Proof<Scalar, Comm>
 where
@@ -54,17 +56,22 @@ where
             )));
         }
 
-        fs_rng.absorb(&to_bytes![b"single_value_product_argument"]?);
+        fs_rng.absorb(b"single_value_product_argument");
 
-        //public information
-        fs_rng.absorb(&to_bytes![proof_parameters.commit_key, statement.a_commit]?);
+        if let Some(proof_commit_bytes) = to_bytes(vec![proof_parameters.commit_key, statement.a_commit]){
+            //public information
+            fs_rng.absorb(proof_commit_bytes);
+        }else{
+            return Err(crate::error::CryptoError::InvalidProductArgumentStatement)
+        }
 
-        //commits
-        fs_rng.absorb(&to_bytes![
-            self.d_commit,
-            self.delta_commit,
-            self.diff_commit
-        ]?);
+        if let Some(diff_commit_bytes) = to_bytes(
+            vec![self.d_commit,self.delta_commit,self.diff_commit]){
+            //commits
+            fs_rng.absorb(diff_commit_bytes);
+        }else{
+            return Err(crate::error::CryptoError::InvalidProductArgumentStatement)
+        }
 
         let x = Scalar::rand(fs_rng);
 

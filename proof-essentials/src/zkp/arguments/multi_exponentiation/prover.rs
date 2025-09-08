@@ -3,7 +3,7 @@ use super::{Parameters, Statement, Witness};
 
 use crate::error::CryptoError;
 use crate::homomorphic_encryption::HomomorphicEncryptionScheme;
-use crate::utils::{rand::sample_vector, vector_arithmetic::dot_product};
+use crate::utils::{rand::sample_vector, vector_arithmetic::dot_product,to_bytes::to_bytes};
 use crate::vector_commitment::HomomorphicCommitmentScheme;
 use crate::zkp::arguments::scalar_powers;
 
@@ -12,6 +12,7 @@ use ark_marlin::rng::FiatShamirRng;
 use ark_std::rand::Rng;
 use digest::Digest;
 use std::marker::PhantomData;
+use crate::utils;
 
 pub struct Prover<'a, Scalar, Enc, Comm>
 where
@@ -52,23 +53,29 @@ where
         rng: &mut R,
         fs_rng: &mut FiatShamirRng<D>,
     ) -> Result<Proof<Scalar, Enc, Comm>, CryptoError> {
-        fs_rng.absorb(
-            &to_bytes![
+        if let Some(join_bytes)=to_bytes(vec![
                 b"multi-exponentiation",
                 self.parameters.public_key,
                 self.parameters.commit_key,
                 self.statement.commitments_to_exponents,
                 &self.statement.product,
                 self.statement.shuffled_ciphers
-            ]
-            .unwrap(),
-        );
+        ]){
+            fs_rng.absorb(join_bytes);
+        }else{
+            return Err(crate::error::CryptoError::IoError(String::from("error on malformed commit key")))
+        }
 
         let m = self.witness.matrix_a.len();
         let n = self.witness.matrix_a[0].len();
         let num_of_diagonals = 2 * m - 1;
 
-        fs_rng.absorb(&to_bytes![m as u32, n as u32, num_of_diagonals as u32]?);
+        if let Some(param_bytes) = to_bytes(vec![m as u32, n as u32, num_of_diagonals as u32]){
+            fs_rng.absorb(param_bytes);
+        }else{
+            return Err(crate::error::CryptoError::InvalidProductArgumentStatement)
+        }
+
 
         let a_0: Vec<Scalar> = sample_vector(rng, n);
         let r_0 = Scalar::rand(rng);
@@ -123,7 +130,11 @@ where
             })
             .collect::<Vec<Enc::Ciphertext>>();
 
-        fs_rng.absorb(&to_bytes![a_0_commit, commit_b_k, vector_e_k]?);
+        if let Some(commit_bytes) = to_bytes(vec![a_0_commit, commit_b_k, vector_e_k]){
+            fs_rng.absorb(commit_bytes);
+        }else{
+            return Err(crate::error::CryptoError::InvalidProductArgumentStatement)
+        }
 
         let challenge = Scalar::rand(fs_rng);
 

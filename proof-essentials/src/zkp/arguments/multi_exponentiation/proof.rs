@@ -14,6 +14,8 @@ use ark_std::io::{Read, Write};
 use bytes::BytesMut;
 use rand::Error;
 
+use bytemuck::cast_slice;
+
 #[derive(CanonicalDeserialize, CanonicalSerialize,Debug)]
 pub struct Proof<Scalar, Enc, Comm>
 where
@@ -83,17 +85,32 @@ where
             return Err(CryptoError::InvalidProductArgumentStatement)
         };
         buffer.extend_from_slice(shuffle_bytes.as_slice());
-
-
         fs_rng.absorb(buffer.iter().as_slice());
 
-        fs_rng.absorb(&to_bytes![m as u32, n as u32, num_of_diagonals as u32]?);
+        fs_rng.absorb(cast_slice(vec![m as u32, n as u32, num_of_diagonals as u32].as_slice()));
 
-        fs_rng.absorb(&to_bytes![
-            self.a_0_commit,
-            self.commit_b_k,
-            self.vector_e_k
-        ]?);
+
+        let mut buffer2 = BytesMut::with_capacity(1024);
+
+        let mut a_0_commit_bytes = vec![];
+        if let Err(err)= self.a_0_commit.serialize_compressed(a_0_commit_bytes){
+            return Err(CryptoError::InvalidProductArgumentStatement)
+        };
+        buffer2.extend_from_slice(a_0_commit_bytes.as_slice());
+
+        let mut commit_b_k_bytes = vec![];
+        if let Err(err)= self.a_0_commit.serialize_compressed(commit_b_k_bytes){
+            return Err(CryptoError::InvalidProductArgumentStatement)
+        };
+        buffer2.extend_from_slice(commit_b_k_bytes.as_slice());
+
+        let mut vector_e_k_bytes = vec![];
+        if let Err(err)= self.a_0_commit.serialize_compressed(vector_e_k_bytes){
+            return Err(CryptoError::InvalidProductArgumentStatement)
+        };
+        buffer2.extend_from_slice(vector_e_k_bytes.as_slice());
+
+        fs_rng.absorb(buffer2.iter().as_slice());
 
         let challenge = Scalar::rand(fs_rng);
 
